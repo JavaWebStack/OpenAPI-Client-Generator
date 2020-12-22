@@ -2,7 +2,6 @@ package org.javawebstack.openapi.client;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.javawebstack.graph.GraphMapper;
 import org.javawebstack.openapi.parser.*;
 
 import java.io.*;
