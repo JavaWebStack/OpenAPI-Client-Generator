@@ -2,6 +2,7 @@ package org.javawebstack.openapi.client;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.javawebstack.graph.GraphMapper;
 import org.javawebstack.openapi.parser.*;
 
 import java.io.*;
@@ -30,6 +31,7 @@ public class JavaClientGenerator {
         add("throws");
         add("protected");
         add("void");
+        add("default");
     }};
 
     OpenAPI api;
@@ -324,8 +326,7 @@ public class JavaClientGenerator {
         sb.append("package ")
                 .append(basePackage)
                 .append(".schemas;\n\n")
-                .append("import com.google.gson.annotations.SerializedName;\n")
-                .append("import java.util.UUID;\n\n");
+                .append("import com.google.gson.annotations.SerializedName;\n\n");
         generateSchema(sb, "", name, schema);
         writeClassFile(targetFolder, basePackage+".schemas."+name, sb.toString());
     }
@@ -341,9 +342,7 @@ public class JavaClientGenerator {
                     .append(basePackage)
                     .append(".schemas.*;\n");
         }
-        sb
-                .append("import com.google.gson.annotations.SerializedName;\n")
-                .append("import java.util.UUID;\n\n");
+        sb.append("import com.google.gson.annotations.SerializedName;\n\n");
         OpenAPISchema schema = getResponseSchema(response);
         if(schema == null)
             return;
@@ -433,7 +432,7 @@ public class JavaClientGenerator {
     private String getSerializedName(String name, String type){
         StringBuilder sb = new StringBuilder();
         for(int i = 0; i < name.length(); i++){
-            if(name.charAt(i) == '_' || name.charAt(i) == '-'){
+            if(name.charAt(i) == '_' || name.charAt(i) == '-' || name.charAt(i) == '.'){
                 i++;
                 if(i < name.length())
                     sb.append(Character.toUpperCase(name.charAt(i)));
@@ -453,8 +452,9 @@ public class JavaClientGenerator {
                 case "Float":
                 case "Double":
                 case "String":
-                case "UUID":
+                case "java.util.UUID":
                 case "Array":
+                case "com.google.gson.JsonObject":
                     break;
                 default:
                     type = "Object";
@@ -480,13 +480,17 @@ public class JavaClientGenerator {
                 return schema.getFormat() == OpenAPIFormat.FLOAT ? "Float" : "Double";
             }
             case STRING: {
-                return schema.getFormat() == OpenAPIFormat.UUID ? "UUID" : "String";
+                return schema.getFormat() == OpenAPIFormat.UUID ? "java.util.UUID" : "String";
             }
             case BOOLEAN: {
                 return "Boolean";
             }
             case ARRAY: {
-                return getJavaType(schema.getItems())+"[]";
+                String elementType = schema.getItems() == null ? "com.google.gson.JsonObject" : getJavaType(schema.getItems());
+                return elementType+"[]";
+            }
+            case OBJECT: {
+                return "com.google.gson.JsonObject";
             }
         }
         return null;
