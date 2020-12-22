@@ -6,7 +6,13 @@ import org.javawebstack.command.CommandSystem;
 import org.javawebstack.openapi.client.JavaClientGenerator;
 import org.javawebstack.openapi.parser.OpenAPI;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +27,14 @@ public class JavaCommand implements Command {
             return CommandResult.error("The spec file isn't readable");
         JavaClientGenerator clientGenerator = new JavaClientGenerator(api);
 
+        if(params.containsKey("snippet")){
+            for(String name : params.get("snippet")){
+                File snippetFile = new File(name);
+                if(!snippetFile.exists())
+                    return CommandResult.error("Snippet '"+name+"' not found");
+                clientGenerator.getSnippet().addAll(readFile(snippetFile));
+            }
+        }
         if(params.containsKey("s"))
             clientGenerator.setJustSource(true);
         if(params.containsKey("artifact-id"))
@@ -40,6 +54,21 @@ public class JavaCommand implements Command {
 
         clientGenerator.generate(targetFolder);
         return CommandResult.success();
+    }
+
+    private static List<String> readFile(File file){
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int r;
+            while ((r = fis.read(buffer)) != -1)
+                baos.write(buffer, 0, r);
+            fis.close();
+            return Arrays.asList(new String(baos.toByteArray(), StandardCharsets.UTF_8).replace("\r", "").split("\n"));
+        }catch (IOException ignored){
+            return new ArrayList<>();
+        }
     }
 
 }

@@ -40,6 +40,7 @@ public class JavaClientGenerator {
     String groupId;
     String artifactId;
     String version;
+    List<String> snippet = new ArrayList<>();
 
     public JavaClientGenerator(OpenAPI api){
         this.api = api;
@@ -148,7 +149,12 @@ public class JavaClientGenerator {
                 .append("Tag(this);\n")
         );
         sb
-                .append("    }\n\n")
+                .append("    }\n\n");
+        if(snippet != null && snippet.size() > 0){
+            snippet.forEach(l -> sb.append("    ").append(l).append("\n"));
+            sb.append("\n");
+        }
+        sb
                 .append("    public <T> T orError(HTTPRequest request, Class<T> type) throws ")
                 .append(apiName)
                 .append("Exception {\n")
@@ -253,18 +259,24 @@ public class JavaClientGenerator {
                     parameters.addAll(pathObject.getParameters());
                 if(operation.getParameters() != null)
                     parameters.addAll(operation.getParameters());
-                String returnType = getJavaType(
-                        getResponseSchema(
-                                operation
-                                        .getResponses()
-                                        .entrySet()
-                                        .stream()
-                                        .filter(e -> e.getKey().startsWith("2"))
-                                        .map(Map.Entry::getValue)
-                                        .findFirst()
-                                        .orElse(null)
-                        )
-                );
+                OpenAPIResponse response = operation
+                        .getResponses()
+                        .entrySet()
+                        .stream()
+                        .filter(e -> e.getKey().startsWith("2"))
+                        .map(Map.Entry::getValue)
+                        .findFirst()
+                        .orElse(null);
+                String returnType;
+                if(response != null && response.getReference() != null){
+                    returnType = response.getReference().split("/")[3];
+                }else{
+                    returnType = getJavaType(
+                            getResponseSchema(
+                                    response
+                            )
+                    );
+                }
                 List<String> methodParams = new ArrayList<>();
                 String url = "\""+path+"\"";
                 for(OpenAPIParameter p : parameters.stream().filter(p -> p.getIn() == OpenAPIParameter.Location.PATH).collect(Collectors.toList())){
@@ -326,7 +338,7 @@ public class JavaClientGenerator {
                 .append(basePackage)
                 .append(".schemas;\n\n")
                 .append("import com.google.gson.annotations.SerializedName;\n\n");
-        generateSchema(sb, "", name, schema);
+        generateSchema(sb, "", name, schema, new ArrayList<>());
         writeClassFile(targetFolder, basePackage+".schemas."+name, sb.toString());
     }
 
@@ -345,18 +357,20 @@ public class JavaClientGenerator {
         OpenAPISchema schema = getResponseSchema(response);
         if(schema == null)
             return;
-        generateSchema(sb, "", name, schema);
+        generateSchema(sb, "", name, schema, new ArrayList<>());
         writeClassFile(targetFolder, basePackage+".responses."+name, sb.toString());
     }
 
-    private void generateSchema(StringBuilder sb, String intendation, String name, OpenAPISchema schema){
+    private void generateSchema(StringBuilder sb, String intendation, String name, OpenAPISchema schema, List<String> usedNames){
         Map<String, String> types = new HashMap<>();
         Map<String, OpenAPISchema> subSchemas = new HashMap<>();
         Map<String, String> serializedNames = new HashMap<>();
         if(schema.getProperties() != null){
             schema.getProperties().forEach((pName, pSchema) -> {
                 String type = getJavaType(pSchema);
-                if(type == null){
+                if(type == null)
+                    type = "null";
+                if(type.startsWith("null")){
                     String subName = capitalize(pName);
                     if(subName.endsWith("ies")){
                         subName = subName.substring(0, subName.length()-3)+"y";
@@ -365,8 +379,15 @@ public class JavaClientGenerator {
                     }else if(subName.endsWith("s")) {
                         subName = subName.substring(0, subName.length() - 1);
                     }
-                    subSchemas.put(subName, pSchema);
-                    type = subName;
+                    int i=0;
+                    String orig = subName;
+                    while (usedNames.contains(subName)){
+                        i++;
+                        subName = orig + i;
+                    }
+                    usedNames.add(subName);
+                    subSchemas.put(subName, pSchema.getType() == OpenAPIDataType.ARRAY ? pSchema.getItems() : pSchema);
+                    type = subName+type.substring(4);
                 }
                 String sName = getSerializedName(pName, type);
                 if(sName != null){
@@ -443,7 +464,7 @@ public class JavaClientGenerator {
             }
         });
         if(subSchemas.size()>0){
-            subSchemas.forEach((subName, subSchema) -> generateSchema(sb, intendation+"    ", subName, subSchema));
+            subSchemas.forEach((subName, subSchema) -> generateSchema(sb, intendation+"    ", subName, subSchema, usedNames));
             sb.append("\n");
         }
         sb.append(intendation).append("}");
@@ -510,7 +531,8 @@ public class JavaClientGenerator {
                 return elementType+"[]";
             }
             case OBJECT: {
-                return "com.google.gson.JsonObject";
+                return null;
+                //return "com.google.gson.JsonObject";
             }
         }
         return null;
