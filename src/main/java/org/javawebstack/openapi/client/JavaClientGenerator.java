@@ -392,36 +392,53 @@ public class JavaClientGenerator {
             sb.append(intendation).append("    private ").append(pType).append(" ").append(pName).append(";\n");
         });
         sb.append("\n");
-        types.forEach((pName, pType) -> sb
-                .append(intendation)
-                .append("    public void set")
-                .append(capitalize(pName))
-                .append("(")
-                .append(pType)
-                .append(" ")
-                .append(pName)
-                .append(") {\n")
-                .append(intendation)
-                .append("        this.")
-                .append(pName)
-                .append(" = ")
-                .append(pName)
-                .append(";\n")
-                .append(intendation)
-                .append("    }\n\n")
-                .append(intendation)
-                .append("    public ")
-                .append(pType)
-                .append(" get")
-                .append(capitalize(pName))
-                .append("() {\n")
-                .append(intendation)
-                .append("        return this.")
-                .append(pName)
-                .append(";\n")
-                .append(intendation)
-                .append("    }\n\n")
-        );
+        types.forEach((pName, pType) -> {
+            sb
+                    .append(intendation)
+                    .append("    public void set")
+                    .append(capitalize(pName))
+                    .append("(")
+                    .append(pType)
+                    .append(" ")
+                    .append(pName)
+                    .append(") {\n")
+                    .append(intendation)
+                    .append("        this.")
+                    .append(pName)
+                    .append(" = ")
+                    .append(pName)
+                    .append(";\n")
+                    .append(intendation)
+                    .append("    }\n\n")
+                    .append(intendation)
+                    .append("    public ")
+                    .append(pType)
+                    .append(" get")
+                    .append(capitalize(pName))
+                    .append("() {\n")
+                    .append(intendation)
+                    .append("        return this.")
+                    .append(pName)
+                    .append(";\n")
+                    .append(intendation)
+                    .append("    }\n\n");
+            if(pType.equals("Boolean")){
+                sb.append(intendation)
+                        .append("    public ")
+                        .append(pType)
+                        .append(" is")
+                        .append(capitalize(pName))
+                        .append("() {\n")
+                        .append(intendation)
+                        .append("        return this.")
+                        .append(pName)
+                        .append(" != null && this.")
+                        .append(pName)
+                        .append(";\n")
+                        .append(intendation)
+                        .append("    }\n\n");
+            }
+        });
         if(subSchemas.size()>0){
             subSchemas.forEach((subName, subSchema) -> generateSchema(sb, intendation+"    ", subName, subSchema));
             sb.append("\n");
