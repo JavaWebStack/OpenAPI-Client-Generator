@@ -394,7 +394,9 @@ public class JavaClientGenerator {
         types.forEach((pName, pType) -> {
             sb
                     .append(intendation)
-                    .append("    public void set")
+                    .append("    public ")
+                    .append(name)
+                    .append(" set")
                     .append(capitalize(pName))
                     .append("(")
                     .append(pType)
@@ -407,6 +409,8 @@ public class JavaClientGenerator {
                     .append(" = ")
                     .append(pName)
                     .append(";\n")
+                    .append(intendation)
+                    .append("        return this;\n")
                     .append(intendation)
                     .append("    }\n\n")
                     .append(intendation)
