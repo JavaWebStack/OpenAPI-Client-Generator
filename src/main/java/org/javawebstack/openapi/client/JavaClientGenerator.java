@@ -122,8 +122,8 @@ public class JavaClientGenerator {
                 .append("package ")
                 .append(basePackage)
                 .append(";\n\n")
-                .append("import org.javawebstack.httpclient.HTTPClient;\n")
-                .append("import org.javawebstack.httpclient.HTTPRequest;\n")
+                .append("import org.javawebstack.httpclient.*;\n")
+                .append("import org.javawebstack.graph.*;\n")
                 .append("import ")
                 .append(basePackage)
                 .append(".tags.*;\n\n")
@@ -141,6 +141,7 @@ public class JavaClientGenerator {
                 .append("\n    public ")
                 .append(apiName)
                 .append("Client() {\n");
+        sb.append("        this.graphMapper(new GraphMapper().setNamingPolicy(NamingPolicy.NONE));\n");
         api.getTags().forEach(t -> sb
                 .append("        this.")
                 .append(t.getName())
